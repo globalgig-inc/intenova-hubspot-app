@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intenova - HubSpot MCP Connector</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .tagline {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 1rem;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+        .btn-google:hover:not(:disabled) {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+        .btn-hubspot {
+            background: #ff7a59;
+            color: white;
+        }
+        .btn-hubspot:hover:not(:disabled) {
+            background: #ff5c35;
+        }
+        .btn-signout {
+            background: #f5f5f5;
+            color: #666;
+        }
+        .btn-signout:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .user-info img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-bottom: 0.5rem;
+        }
+        .user-info .name {
+            font-weight: 600;
+            color: #333;
+        }
+        .user-info .email {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 1.5rem 0;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+        .status-label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Intenova</div>
+        <p class="tagline">Connect your HubSpot account for AI-powered CRM access</p>
+
+        <!-- Sign In Section (shown when not authenticated) -->
+        <div id="sign-in-section">
+            <button id="google-signin-btn" class="btn btn-google">
+                <svg class="icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+            </button>
+        </div>
+
+        <!-- User Dashboard Section (shown when authenticated) -->
+        <div id="dashboard-section" class="hidden">
+            <div class="user-info">
+                <img id="user-photo" src="" alt="User photo">
+                <div class="name" id="user-name"></div>
+                <div class="email" id="user-email"></div>
+            </div>
+
+            <div id="hubspot-status" class="status disconnected">
+                <span class="status-label">HubSpot:</span> <span id="hubspot-status-text">Not connected</span>
+            </div>
+
+            <button id="connect-hubspot-btn" class="btn btn-hubspot">
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.164 7.93V5.085a2.198 2.198 0 001.267-1.984 2.21 2.21 0 00-4.42 0c0 .873.51 1.626 1.247 1.98v2.848a5.174 5.174 0 00-3.092 1.481l-8.09-6.3a2.572 2.572 0 00.144-.855 2.567 2.567 0 10-2.566 2.566c.507 0 .98-.15 1.378-.405l8.05 6.27a5.2 5.2 0 00-.524 2.276 5.2 5.2 0 00.593 2.42l-2.453 2.453a2.088 2.088 0 00-.654-.107 2.1 2.1 0 102.1 2.1c0-.233-.04-.456-.107-.664l2.428-2.428a5.224 5.224 0 103.7-10.736z"/>
+                </svg>
+                Connect HubSpot
+            </button>
+
+            <div class="divider"></div>
+
+            <button id="signout-btn" class="btn btn-signout">
+                Sign Out
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration - uses existing GCP project
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY", // Get from Firebase Console
+            authDomain: "agentic-platform-482920.firebaseapp.com",
+            projectId: "agentic-platform-482920",
+            storageBucket: "agentic-platform-482920.appspot.com",
+            messagingSenderId: "973127896330",
+            appId: "YOUR_FIREBASE_APP_ID" // Get from Firebase Console
+        };
+
+        // HubSpot OAuth configuration - get from HubSpot Developer Portal after app deployment
+        const hubspotConfig = {
+            clientId: 'YOUR_HUBSPOT_CLIENT_ID', // Get from HubSpot Developer Portal
+            redirectUri: window.location.hostname === 'localhost'
+                ? 'http://localhost:3000/hubspot-callback'
+                : 'https://test.intenova.ai/hubspot-callback',
+            scopes: [
+                'oauth',
+                'crm.objects.contacts.read',
+                'crm.objects.companies.read',
+                'crm.objects.deals.read',
+                'crm.objects.tickets.read',
+                'crm.objects.users.read',
+                'crm.objects.owners.read'
+            ]
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM elements
+        const signInSection = document.getElementById('sign-in-section');
+        const dashboardSection = document.getElementById('dashboard-section');
+        const googleSignInBtn = document.getElementById('google-signin-btn');
+        const connectHubspotBtn = document.getElementById('connect-hubspot-btn');
+        const signOutBtn = document.getElementById('signout-btn');
+        const hubspotStatus = document.getElementById('hubspot-status');
+        const hubspotStatusText = document.getElementById('hubspot-status-text');
+        const userPhoto = document.getElementById('user-photo');
+        const userName = document.getElementById('user-name');
+        const userEmail = document.getElementById('user-email');
+
+        // Auth state observer
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in
+                signInSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+
+                // Display user info
+                userPhoto.src = user.photoURL || 'https://via.placeholder.com/48';
+                userName.textContent = user.displayName || 'User';
+                userEmail.textContent = user.email;
+
+                // Check HubSpot connection status
+                await checkHubspotConnection(user.uid);
+            } else {
+                // User is signed out
+                signInSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+            }
+        });
+
+        // Check if user has connected HubSpot
+        async function checkHubspotConnection(userId) {
+            try {
+                const tokenDoc = await getDoc(doc(db, 'users', userId, 'hubspot_tokens', 'current'));
+                if (tokenDoc.exists()) {
+                    const data = tokenDoc.data();
+                    hubspotStatus.className = 'status connected';
+                    hubspotStatusText.textContent = 'Connected (expires: ' + new Date(data.expiresAt).toLocaleDateString() + ')';
+                    connectHubspotBtn.textContent = 'Reconnect HubSpot';
+                } else {
+                    hubspotStatus.className = 'status disconnected';
+                    hubspotStatusText.textContent = 'Not connected';
+                    connectHubspotBtn.textContent = 'Connect HubSpot';
+                }
+            } catch (error) {
+                console.error('Error checking HubSpot connection:', error);
+                hubspotStatus.className = 'status error';
+                hubspotStatusText.textContent = 'Error checking status';
+            }
+        }
+
+        // Google Sign In
+        googleSignInBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed. Please try again.');
+            }
+        });
+
+        // Connect HubSpot
+        connectHubspotBtn.addEventListener('click', () => {
+            const state = auth.currentUser?.uid; // Use Firebase UID as state for security
+            if (!state) {
+                alert('Please sign in first');
+                return;
+            }
+
+            const authUrl = new URL('https://app.hubspot.com/oauth/authorize');
+            authUrl.searchParams.set('client_id', hubspotConfig.clientId);
+            authUrl.searchParams.set('redirect_uri', hubspotConfig.redirectUri);
+            authUrl.searchParams.set('scope', hubspotConfig.scopes.join(' '));
+            authUrl.searchParams.set('state', state);
+
+            // Redirect to HubSpot OAuth
+            window.location.href = authUrl.toString();
+        });
+
+        // Sign Out
+        signOutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

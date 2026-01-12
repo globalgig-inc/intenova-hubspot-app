@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting HubSpot - Intenova</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #ff7a59;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Intenova</div>
+
+        <div id="loading-section">
+            <div class="spinner"></div>
+            <p class="status" id="status-text">Connecting to HubSpot...</p>
+        </div>
+
+        <div id="error-section" class="hidden">
+            <div class="error" id="error-message"></div>
+            <p style="margin-top: 1rem;">
+                <a href="/" style="color: #667eea;">Return to Dashboard</a>
+            </p>
+        </div>
+
+        <div id="success-section" class="hidden">
+            <div class="success">HubSpot connected successfully!</div>
+            <p style="margin-top: 1rem;">Redirecting to dashboard...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration - same as index.html
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY", // Get from Firebase Console
+            authDomain: "agentic-platform-482920.firebaseapp.com",
+            projectId: "agentic-platform-482920",
+            storageBucket: "agentic-platform-482920.appspot.com",
+            messagingSenderId: "973127896330",
+            appId: "YOUR_FIREBASE_APP_ID" // Get from Firebase Console
+        };
+
+        // HubSpot OAuth configuration
+        const hubspotConfig = {
+            clientId: 'YOUR_HUBSPOT_CLIENT_ID',
+            clientSecret: 'YOUR_HUBSPOT_CLIENT_SECRET', // IMPORTANT: Move to Cloud Function for production
+            redirectUri: window.location.hostname === 'localhost'
+                ? 'http://localhost:3000/hubspot-callback'
+                : 'https://test.intenova.ai/hubspot-callback'
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM elements
+        const loadingSection = document.getElementById('loading-section');
+        const errorSection = document.getElementById('error-section');
+        const successSection = document.getElementById('success-section');
+        const statusText = document.getElementById('status-text');
+        const errorMessage = document.getElementById('error-message');
+
+        function showError(message) {
+            loadingSection.classList.add('hidden');
+            errorSection.classList.remove('hidden');
+            errorMessage.textContent = message;
+        }
+
+        function showSuccess() {
+            loadingSection.classList.add('hidden');
+            successSection.classList.remove('hidden');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+
+        function updateStatus(message) {
+            statusText.textContent = message;
+        }
+
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const errorParam = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+
+        // Handle errors from HubSpot
+        if (errorParam) {
+            showError(errorDescription || 'Authorization was denied or failed.');
+        } else if (!code) {
+            showError('No authorization code received from HubSpot.');
+        } else {
+            // Wait for auth state
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    showError('You must be signed in to connect HubSpot. Please sign in and try again.');
+                    return;
+                }
+
+                // Verify state matches user ID (CSRF protection)
+                if (state !== user.uid) {
+                    showError('Security validation failed. Please try connecting again.');
+                    return;
+                }
+
+                try {
+                    updateStatus('Exchanging authorization code...');
+
+                    // Exchange code for tokens
+                    // NOTE: In production, this should be done via a Cloud Function
+                    // to keep the client_secret secure. This is a simplified example.
+                    const tokenResponse = await fetch('https://api.hubapi.com/oauth/v1/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: new URLSearchParams({
+                            grant_type: 'authorization_code',
+                            client_id: hubspotConfig.clientId,
+                            client_secret: hubspotConfig.clientSecret,
+                            redirect_uri: hubspotConfig.redirectUri,
+                            code: code
+                        })
+                    });
+
+                    if (!tokenResponse.ok) {
+                        const errorData = await tokenResponse.json().catch(() => ({}));
+                        throw new Error(errorData.message || 'Failed to exchange authorization code');
+                    }
+
+                    const tokens = await tokenResponse.json();
+
+                    updateStatus('Saving connection...');
+
+                    // Calculate expiration time
+                    const expiresAt = Date.now() + (tokens.expires_in * 1000);
+
+                    // Store tokens in Firestore
+                    await setDoc(doc(db, 'users', user.uid, 'hubspot_tokens', 'current'), {
+                        accessToken: tokens.access_token,
+                        refreshToken: tokens.refresh_token,
+                        expiresAt: expiresAt,
+                        tokenType: tokens.token_type,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+
+                    showSuccess();
+
+                } catch (error) {
+                    console.error('Token exchange error:', error);
+                    showError('Failed to connect HubSpot: ' + error.message);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

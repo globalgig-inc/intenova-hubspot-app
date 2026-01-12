@@ -43,3 +43,8 @@ yarn-error.log*
 # Testing
 coverage/
 .nyc_output/
+
+# HubSpot
+.hubspot/
+hubspot.config.yml
+*.portal.json

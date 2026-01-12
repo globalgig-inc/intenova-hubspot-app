@@ -1,0 +1,45 @@
+{
+  "uid": "intenova-hubspot-mcp",
+  "type": "app",
+  "config": {
+    "name": "Intenova HubSpot MCP Connector",
+    "description": "User-level app for MCP access to HubSpot CRM data",
+    "distribution": "marketplace",
+    "isUserLevel": true,
+    "auth": {
+      "type": "oauth",
+      "redirectUrls": [
+        "http://localhost:3000/hubspot-callback",
+        "https://test.intenova.ai/hubspot-callback"
+      ],
+      "requiredScopes": [
+        "oauth",
+        "crm.objects.contacts.read",
+        "crm.objects.companies.read",
+        "crm.objects.deals.read"
+      ],
+      "optionalScopes": [
+        "crm.objects.tickets.read",
+        "crm.objects.users.read",
+        "crm.objects.owners.read",
+        "crm.objects.products.read",
+        "crm.objects.orders.read",
+        "crm.objects.invoices.read",
+        "crm.objects.quotes.read",
+        "crm.objects.line_items.read",
+        "crm.objects.subscriptions.read",
+        "crm.objects.carts.read"
+      ]
+    },
+    "permittedUrls": {
+      "fetch": ["https://api.hubapi.com"],
+      "iframe": [],
+      "img": []
+    },
+    "support": {
+      "supportEmail": "support@intenova.ai",
+      "documentationUrl": "https://intenova.ai/docs",
+      "supportUrl": "https://intenova.ai/support"
+    }
+  }
+}
